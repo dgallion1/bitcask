@@ -16,7 +16,7 @@ require (
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56
 )
 
-replace github.com/dgallion1/bitcask => github.com/dgallion1/bitcask v0.3.105
+//replace github.com/dgallion1/bitcask => github.com/dgallion1/bitcask v0.3.106
 
 // replace github.com/dgallion1/bitcask/internal => github.com/dgallion1/bitcask/internal v0.3.105
 
