@@ -106,6 +106,39 @@ func (b *Bitcask) Sync() error {
 	return b.curr.Sync()
 }
 
+
+// Get retrieves the value of the given key. If the key is not found or an/I/O
+// error occurs a null byte slice is returned along with the error.
+func (b *Bitcask) GetNoLock(key []byte) ([]byte, error) {
+	var df data.Datafile
+
+	value, found := b.trie.Search(key)
+	if !found {
+		return nil, ErrKeyNotFound
+	}
+
+	item := value.(internal.Item)
+
+	if item.FileID == b.curr.FileID() {
+		df = b.curr
+	} else {
+		df = b.datafiles[item.FileID]
+	}
+
+	e, err := df.ReadAt(item.Offset, item.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	checksum := crc32.ChecksumIEEE(e.Value)
+	if checksum != e.Checksum {
+		return nil, ErrChecksumFailed
+	}
+
+	return e.Value, nil
+}
+
+
 // Get retrieves the value of the given key. If the key is not found or an/I/O
 // error occurs a null byte slice is returned along with the error.
 func (b *Bitcask) Get(key []byte) ([]byte, error) {
@@ -147,6 +180,31 @@ func (b *Bitcask) Has(key []byte) bool {
 	b.mu.RUnlock()
 	return found
 }
+
+func (b *Bitcask) PutNoLock(key, value []byte) error {
+	if uint32(len(key)) > b.config.MaxKeySize {
+		return ErrKeyTooLarge
+	}
+	if uint64(len(value)) > b.config.MaxValueSize {
+		return ErrValueTooLarge
+	}
+
+	offset, n, err := b.put(key, value)
+	if err != nil {
+		return err
+	}
+
+	if b.config.Sync {
+		if err := b.curr.Sync(); err != nil {
+			return err
+		}
+	}
+
+	item := internal.Item{FileID: b.curr.FileID(), Offset: offset, Size: n}
+	b.trie.Insert(key, item)
+	return nil
+}
+
 
 // Put stores the key and value in the database.
 func (b *Bitcask) Put(key, value []byte) error {
@@ -255,6 +313,21 @@ func (b *Bitcask) Keys() chan []byte {
 // Fold iterates over all keys in the database calling the function `f` for
 // each key. If the function returns an error, no further keys are processed
 // and the error returned.
+func (b *Bitcask) FoldNoLock(f func(key []byte) error) (err error) {
+	b.trie.ForEach(func(node art.Node) bool {
+		if err = f(node.Key()); err != nil {
+			return false
+		}
+		return true
+	})
+
+	return
+}
+
+
+// Fold iterates over all keys in the database calling the function `f` for
+// each key. If the function returns an error, no further keys are processed
+// and the error returned.
 func (b *Bitcask) Fold(f func(key []byte) error) (err error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -297,6 +370,30 @@ func (b *Bitcask) put(key, value []byte) (int64, int64, error) {
 	e := internal.NewEntry(key, value)
 	return b.curr.Write(e)
 }
+
+func (b *Bitcask) reopenNoLock() error {
+	datafiles, lastID, err := loadDatafiles(b.path, b.config.MaxKeySize, b.config.MaxValueSize)
+	if err != nil {
+		return err
+	}
+
+	t, err := loadIndex(b.path, b.indexer, b.config.MaxKeySize, datafiles)
+	if err != nil {
+		return err
+	}
+
+	curr, err := data.NewDatafile(b.path, lastID, false, b.config.MaxKeySize, b.config.MaxValueSize)
+	if err != nil {
+		return err
+	}
+
+	b.trie = t
+	b.curr = curr
+	b.datafiles = datafiles
+
+	return nil
+}
+
 
 func (b *Bitcask) Reopen() error {
 	b.mu.Lock()
@@ -341,16 +438,19 @@ func (b *Bitcask) Merge() error {
 		return err
 	}
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	// Rewrite all key/value pairs into merged database
 	// Doing this automatically strips deleted keys and
 	// old key/value pairs
-	err = b.Fold(func(key []byte) error {
-		value, err := b.Get(key)
+	err = b.FoldNoLock(func(key []byte) error {
+		value, err := b.GetNoLock(key)
 		if err != nil {
 			return err
 		}
 
-		if err := mdb.Put(key, value); err != nil {
+		if err := mdb.PutNoLock(key, value); err != nil {
 			return err
 		}
 
@@ -401,7 +501,7 @@ func (b *Bitcask) Merge() error {
 	}
 
 	// And finally reopen the database
-	return b.Reopen()
+	return b.reopenNoLock()
 }
 
 // Open opens the database at the given path with optional options.
