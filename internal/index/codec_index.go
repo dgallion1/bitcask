@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	art "github.com/plar/go-adaptive-radix-tree"
-	"github.com/prologic/bitcask/internal"
+	"github.com/dgallion1/bitcask/internal"
 )
 
 var (

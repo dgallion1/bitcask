@@ -1,6 +1,6 @@
 package bitcask
 
-import "github.com/prologic/bitcask/internal/config"
+import "github.com/dgallion1/bitcask/internal/config"
 
 const (
 	// DefaultMaxDatafileSize is the default maximum datafile size in bytes

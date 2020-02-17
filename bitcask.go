@@ -13,10 +13,10 @@ import (
 
 	"github.com/gofrs/flock"
 	art "github.com/plar/go-adaptive-radix-tree"
-	"github.com/prologic/bitcask/internal"
-	"github.com/prologic/bitcask/internal/config"
-	"github.com/prologic/bitcask/internal/data"
-	"github.com/prologic/bitcask/internal/index"
+	"github.com/dgallion1/bitcask/internal"
+	"github.com/dgallion1/bitcask/internal/config"
+	"github.com/dgallion1/bitcask/internal/data"
+	"github.com/dgallion1/bitcask/internal/index"
 )
 
 var (

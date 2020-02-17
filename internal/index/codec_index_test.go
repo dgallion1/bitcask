@@ -6,9 +6,9 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/dgallion1/bitcask/internal"
 	"github.com/pkg/errors"
 	art "github.com/plar/go-adaptive-radix-tree"
-	"github.com/prologic/bitcask/internal"
 )
 
 const (

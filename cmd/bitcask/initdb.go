@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/prologic/bitcask"
+	"github.com/dgallion1/bitcask"
 )
 
 var initdbCmd = &cobra.Command{

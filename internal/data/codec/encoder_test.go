@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/prologic/bitcask/internal"
+	"github.com/dgallion1/bitcask/internal"
 	"github.com/stretchr/testify/assert"
 )
 
