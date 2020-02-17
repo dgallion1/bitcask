@@ -6,7 +6,7 @@ require (
 	github.com/gofrs/flock v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/plar/go-adaptive-radix-tree v1.0.1
-	github.com/prologic/bitcask v0.3.5
+	github.com/dgallion1/bitcask v0.3.106
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
